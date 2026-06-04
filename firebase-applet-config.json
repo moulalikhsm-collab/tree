@@ -1,8 +1,10 @@
 {
-  "apiKey": "MOCK_AI_STUDIO_BUILD_FIREBASE_API_KEY",
-  "authDomain": "mock-ecofriend-auth.firebaseapp.com",
-  "projectId": "mock-ecofriend",
-  "storageBucket": "mock-ecofriend.appspot.com",
-  "messagingSenderId": "000000000000",
-  "appId": "1:000000000000:web:000000000000"
+  "projectId": "hallowed-zenith-6jwpf",
+  "appId": "1:1009424333667:web:e8fdc0835de750a46f7156",
+  "apiKey": "AIzaSyDAGZWgbm40a4xieuCHw2DqAjzZy2WP2QE",
+  "authDomain": "hallowed-zenith-6jwpf.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-ea95eb27-6dad-493b-8dfe-5f54e26f200d",
+  "storageBucket": "hallowed-zenith-6jwpf.firebasestorage.app",
+  "messagingSenderId": "1009424333667",
+  "measurementId": ""
 }

@@ -90,7 +90,7 @@ export let db: any = null;
 if (IS_FIREBASE_ENABLED) {
   try {
     app = initializeApp(firebaseConfig);
-    db = getFirestore(app);
+    db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
     auth = getAuth(app);
     console.log("Firebase is initialized with production keys.");
 
