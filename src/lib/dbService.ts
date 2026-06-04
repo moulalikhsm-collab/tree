@@ -76,12 +76,9 @@ export interface ActivityLog {
 }
 
 // ----------------------------------------------------
-// DYNAMIC FEATURE MODE: FIREBASE DETECT ACTION
+// DYNAMIC FEATURE MODE: FIREBASE INTEGRATION DISABLED (USER REQUESTED REMOVAL)
 // ----------------------------------------------------
-const IS_FIREBASE_ENABLED = 
-  firebaseConfig && 
-  firebaseConfig.apiKey && 
-  firebaseConfig.apiKey !== "MOCK_AI_STUDIO_BUILD_FIREBASE_API_KEY";
+const IS_FIREBASE_ENABLED = false;
 
 let app: any = null;
 export let auth: any = null;
