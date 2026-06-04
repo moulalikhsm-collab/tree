@@ -24,6 +24,7 @@ import AuthPage from './components/AuthPage';
 type TabType = 'dashboard' | 'recommend' | 'growth' | 'vision' | 'soil';
 
 interface UserInfo {
+  uid: string;
   name: string;
   email: string;
   grade: string;
@@ -198,7 +199,7 @@ export default function App() {
 
         {/* Dynamic Workspace Container */}
         <div id="dynamic-workspace-canvas" className="transition-all duration-300">
-          {activeTab === 'dashboard' && <DashboardOverview onSowTrigger={handleSowSeedNotification} language={language} />}
+          {activeTab === 'dashboard' && <DashboardOverview onSowTrigger={handleSowSeedNotification} language={language} user={user} />}
           {activeTab === 'recommend' && <PlantRecommender currentLocation={currentLocation} language={language} />}
           {activeTab === 'growth' && <GrowthPredictor language={language} />}
           {activeTab === 'vision' && <LeafScanner language={language} />}

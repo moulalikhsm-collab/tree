@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Sprout, Award, HelpCircle, Heart, Plus, Calendar, AlertCircle, Check, Clock, Bell, Trash2, History, Sparkles } from 'lucide-react';
 import { PlantTracker } from '../types';
 import { AppLanguage } from '../App';
+import { dbService, UserProfile } from '../lib/dbService';
 
 interface DashboardOverviewProps {
   onSowTrigger: (plantName: string) => void;
   language: AppLanguage;
+  user: UserProfile;
 }
 
 interface PlantReminder {
@@ -153,13 +155,9 @@ const schedulerTexts = {
   }
 };
 
-export default function DashboardOverview({ onSowTrigger, language }: DashboardOverviewProps) {
+export default function DashboardOverview({ onSowTrigger, language, user }: DashboardOverviewProps) {
   // Collection of virtual student pots
-  const [pots, setPots] = useState<PlantTracker[]>([
-    { id: '1', name: 'Holy Tulsi Mix', type: 'Medicinal Herb', datePlanted: '2026-05-15', stage: 'Active Vegetative Canopy', wateringReminder: 'Daily morning moisten', healthScore: 92 },
-    { id: '2', name: 'Cherry Tomato Pot', type: 'Vegetable', datePlanted: '2026-05-28', stage: 'Sprouting seedlings', wateringReminder: '250ml water scheduled', healthScore: 88 },
-    { id: '3', name: 'English Peppermint', type: 'Medicinal Herb', datePlanted: '2026-06-01', stage: 'Sowing seed stage', wateringReminder: 'Keep soil moist', healthScore: 95 }
-  ]);
+  const [pots, setPots] = useState<PlantTracker[]>([]);
   const [showSowForm, setShowSowForm] = useState(false);
   const [newPlantName, setNewPlantName] = useState('');
   const [newPlantType, setNewPlantType] = useState('Vegetable');
@@ -228,16 +226,68 @@ export default function DashboardOverview({ onSowTrigger, language }: DashboardO
     }
   ]);
 
-  const [careLogs, setCareLogs] = useState<CareLog[]>([
-    {
-      id: 'log-1',
-      plantName: 'English Peppermint',
-      type: 'watering',
-      amountOrDose: '150ml light misty spray',
-      timestamp: new Date(Date.now() - 11 * 60 * 60 * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      growthStage: 'Sowing seed stage'
-    }
-  ]);
+  const [careLogs, setCareLogs] = useState<CareLog[]>([]);
+
+  // DB Sync Effect for Sowed Seeds (Pots)
+  useEffect(() => {
+    if (!user || !user.uid) return;
+
+    const unsubscribe = dbService.listenSeeds(user.uid, (seedsList) => {
+      if (seedsList.length === 0) {
+        // Pre-populate classical starter organic containers on registration
+        const prePopulate = async () => {
+          try {
+            await dbService.createSeed(user.uid, 'Holy Tulsi Mix', 'Medicinal Herb', 'Daily morning moisten', 'Mild warm weather', 'growing');
+            await dbService.createSeed(user.uid, 'Cherry Tomato Pot', 'Vegetable', '250ml water scheduled', 'Sunny', 'germinated');
+            await dbService.createSeed(user.uid, 'English Peppermint', 'Medicinal Herb', 'Keep soil moist', 'Cool shade', 'germinated');
+          } catch (e) {
+            console.error("Failed to seed initial organic database pots:", e);
+          }
+        };
+        prePopulate();
+      } else {
+        const mapped: PlantTracker[] = seedsList.map(s => {
+          let stageLabel = 'Sowing seed stage';
+          if (s.status === 'growing') stageLabel = 'Active Vegetative Canopy';
+          else if (s.status === 'ready-to-harvest') stageLabel = 'Buds & Flowering stage';
+          else if (s.status === 'harvested') stageLabel = 'Harvest Completed!';
+          
+          return {
+            id: s.seedId,
+            name: s.plantName,
+            type: s.soilQuality || 'Vegetable',
+            datePlanted: s.dateSowed.split('T')[0],
+            stage: stageLabel,
+            wateringReminder: s.waterSupply || 'Daily moistening scheduled',
+            healthScore: s.status === 'growing' ? 92 : s.status === 'ready-to-harvest' ? 96 : s.status === 'harvested' ? 100 : 88
+          };
+        });
+        setPots(mapped);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user?.uid]);
+
+  // DB Sync Effect for Care/Activity Logs
+  useEffect(() => {
+    if (!user || !user.uid) return;
+
+    const unsubscribe = dbService.listenLogs(user.uid, (logsList) => {
+      if (logsList.length === 0) return;
+      const mappedLogs: CareLog[] = logsList.map(l => ({
+        id: l.logId,
+        plantName: l.title,
+        type: l.description?.includes('Watering') || l.description?.includes('నీరు') ? 'watering' : 'fertilizing',
+        amountOrDose: l.description || 'Routine care applied',
+        timestamp: new Date(l.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        growthStage: 'Active Garden care'
+      }));
+      setCareLogs(mappedLogs);
+    });
+
+    return () => unsubscribe();
+  }, [user?.uid]);
 
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [showAddReminderForm, setShowAddReminderForm] = useState(false);
@@ -357,16 +407,12 @@ export default function DashboardOverview({ onSowTrigger, language }: DashboardO
       return p;
     }));
 
-    // Record Log entry
-    const newLog: CareLog = {
-      id: String(Date.now()),
-      plantName: rem.plantName,
-      type: rem.type,
-      amountOrDose: rem.amountOrDose,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      growthStage: rem.growthStageContext
-    };
-    setCareLogs(prev => [newLog, ...prev]);
+    // Record Log entry in database ledger
+    dbService.createLog(
+      user.uid,
+      rem.plantName,
+      `[${rem.type === 'watering' ? 'Watering 💧' : 'Fertilizing 🍂'}] Applied ${rem.amountOrDose} at ${rem.growthStageContext}`
+    ).catch(e => console.error("Logged care failed:", e));
 
     triggerToast(
       language === 'Telugu'
@@ -488,24 +534,48 @@ export default function DashboardOverview({ onSowTrigger, language }: DashboardO
     );
   };
 
-  const handleSow = (e: React.FormEvent) => {
+  const handleSow = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPlantName.trim()) return;
 
-    const newPot: PlantTracker = {
-      id: String(Date.now()),
-      name: newPlantName,
-      type: newPlantType,
-      datePlanted: new Date().toISOString().split('T')[0],
-      stage: language === 'Telugu' ? 'Sowing seed stage' : language === 'Hindi' ? 'Sowing seed stage' : 'Sowing seed stage',
-      wateringReminder: language === 'Telugu' ? 'రోజూ తడి ఉంచాలి' : language === 'Hindi' ? 'रोजाना सिंचाई करें' : 'Moisten soil daily',
-      healthScore: 100
-    };
+    try {
+      await dbService.createSeed(
+        user.uid,
+        newPlantName,
+        newPlantType,
+        language === 'Telugu' ? 'రోజూ తడి ఉంచాలి' : language === 'Hindi' ? 'रोजाना सिंचाई करें' : 'Moisten soil daily',
+        'Balanced room sun',
+        'germinated'
+      );
+      
+      // Save activity log in database ledger
+      await dbService.createLog(
+        user.uid,
+        newPlantName,
+        `Sowed Organic Seed: ${newPlantName} (${newPlantType}) successfully planted into container database.`
+      );
 
-    setPots([newPot, ...pots]);
-    onSowTrigger(newPlantName);
-    setNewPlantName('');
-    setShowSowForm(false);
+      onSowTrigger(newPlantName);
+      setNewPlantName('');
+      setShowSowForm(false);
+    } catch (e) {
+      console.error("Failed to sow seed to database:", e);
+    }
+  };
+
+  const handleDeletePot = async (potId: string) => {
+    try {
+      const targetPot = pots.find(p => p.id === potId);
+      if (!targetPot) return;
+      await dbService.deleteSeed(potId, user.uid);
+      await dbService.createLog(
+        user.uid,
+        targetPot.name,
+        `Removed container: ${targetPot.name} deleted from active database tracking.`
+      );
+    } catch (e) {
+      console.error("Failed to delete pot:", e);
+    }
   };
 
   const toggleTask = (id: number) => {
@@ -844,7 +914,14 @@ export default function DashboardOverview({ onSowTrigger, language }: DashboardO
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-2 border-t border-slate-100/50 flex justify-end">
+                  <div className="mt-4 pt-2 border-t border-slate-100/50 flex justify-between items-center">
+                    <button
+                      onClick={() => handleDeletePot(p.id)}
+                      className="text-[10px] text-slate-400 hover:text-red-500 font-semibold flex items-center gap-1 transition-colors hover:bg-red-55 px-1.5 py-0.5 rounded cursor-pointer"
+                      title="Remove Pot"
+                    >
+                      <Trash2 className="w-3 h-3 text-slate-400 hover:text-red-500" /> {language === 'Telugu' ? 'తొలగించు' : language === 'Hindi' ? 'हटाएं' : 'Remove'}
+                    </button>
                     <span className="text-[9px] bg-emerald-50 text-emerald-800 font-extrabold px-2 py-0.5 rounded uppercase">
                       {language === 'Telugu' ? 'నిరంతర నిఘా' : language === 'Hindi' ? 'लाइव मॉनिटर' : 'Live tracking'}
                     </span>

@@ -1,0 +1,84 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    // Global helper primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    
+    function incoming() {
+      return request.resource.data;
+    }
+    
+    function existing() {
+      return resource.data;
+    }
+
+    // User collection rules
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.uid is string && data.uid == request.auth.uid &&
+               data.name is string && data.name.size() <= 100 &&
+               data.email is string && data.email.size() <= 100 &&
+               data.grade is string && data.grade.size() <= 100 &&
+               data.createdAt is timestamp;
+      }
+
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming()) && incoming().createdAt == request.time;
+      allow update: if isOwner(userId) && isValidUser(incoming()) && incoming().createdAt == existing().createdAt && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'grade'])
+      );
+      allow delete: if false; // Student profiles are permanent in school registers
+
+      // Sub-collection of Sowed Seeds
+      match /seeds/{seedId} {
+        function isValidSeed(data) {
+          return data.seedId is string && data.seedId == seedId &&
+                 data.userId is string && data.userId == request.auth.uid &&
+                 data.plantName is string && data.plantName.size() <= 100 &&
+                 data.status is string && (data.status == 'germinated' || data.status == 'growing' || data.status == 'ready-to-harvest' || data.status == 'harvested') &&
+                 data.createdAt is timestamp;
+        }
+
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(seedId) && isValidSeed(incoming()) && incoming().createdAt == request.time;
+        allow update: if isOwner(userId) && isValidId(seedId) && isValidSeed(incoming()) && incoming().createdAt == existing().createdAt && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'soilQuality', 'waterSupply', 'climate'])
+        );
+        allow delete: if isOwner(userId) && isValidId(seedId);
+      }
+
+      // Sub-collection of Gardening Activity Logs
+      match /logs/{logId} {
+        function isValidLog(data) {
+          return data.logId is string && data.logId == logId &&
+                 data.userId is string && data.userId == request.auth.uid &&
+                 data.title is string && data.title.size() <= 100 &&
+                 data.timestamp is timestamp;
+        }
+
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(logId) && isValidLog(incoming()) && incoming().timestamp == request.time;
+        allow update: if false; // Chronology log once written cannot be overwritten by client
+        allow delete: if isOwner(userId) && isValidId(logId);
+      }
+    }
+  }
+}

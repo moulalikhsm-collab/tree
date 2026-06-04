@@ -1,0 +1,8 @@
+{
+  "apiKey": "MOCK_AI_STUDIO_BUILD_FIREBASE_API_KEY",
+  "authDomain": "mock-ecofriend-auth.firebaseapp.com",
+  "projectId": "mock-ecofriend",
+  "storageBucket": "mock-ecofriend.appspot.com",
+  "messagingSenderId": "000000000000",
+  "appId": "1:000000000000:web:000000000000"
+}

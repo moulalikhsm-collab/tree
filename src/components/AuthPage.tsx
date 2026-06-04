@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Leaf, Lock, Mail, User, BookOpen, AlertCircle, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { dbService } from '../lib/dbService';
 
 interface AuthPageProps {
-  onLoginSuccess: (userInfo: { name: string; email: string; grade: string }) => void;
+  onLoginSuccess: (userInfo: { uid: string; name: string; email: string; grade: string }) => void;
 }
 
 export default function AuthPage({ onLoginSuccess }: AuthPageProps) {
@@ -14,34 +15,45 @@ export default function AuthPage({ onLoginSuccess }: AuthPageProps) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    // Dynamic validated simulation for instant secure entry
-    setTimeout(() => {
-      if (!email.includes('@')) {
-        setError('Please enter a valid academic or personal email address.');
-        setLoading(false);
-        return;
-      }
-      if (password.length < 6) {
-        setError('Password must be at least 6 characters for local storage encryption.');
-        setLoading(false);
-        return;
-      }
+    if (!email.includes('@')) {
+      setError('Please enter a valid academic or personal email address.');
+      setLoading(false);
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters for security validation.');
+      setLoading(false);
+      return;
+    }
 
-      const info = {
-        name: isLogin ? (email === 'student@ecofriend.org' ? 'Hazira Dudekula' : email.split('@')[0]) : name,
-        email,
-        grade
-      };
+    try {
+      let info;
+      if (isLogin) {
+        info = await dbService.login(email, password);
+      } else {
+        info = await dbService.register(name, email, password, grade);
+      }
 
       localStorage.setItem('ecofriend_user', JSON.stringify(info));
       onLoginSuccess(info);
+    } catch (err: any) {
+      console.error("Authentication error:", err);
+      let errMsg = err.message;
+      try {
+        const parsed = JSON.parse(err.message);
+        if (parsed && parsed.error) {
+          errMsg = parsed.error;
+        }
+      } catch (ex) {}
+      setError(errMsg || 'An unexpected error occurred during database sync.');
+    } finally {
       setLoading(false);
-    }, 800);
+    }
   };
 
   return (

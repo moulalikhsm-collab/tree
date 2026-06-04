@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 
@@ -327,6 +328,197 @@ async function startServer() {
   
   // Increase payload limit to support leaf photo uploads
   app.use(express.json({ limit: '10mb' }));
+
+  // --- DATABASE INITIALIZATION AND HELPER FUNCTIONS ---
+  const DB_FILE = path.join(process.cwd(), "db.json");
+
+  function readDb() {
+    try {
+      if (!fs.existsSync(DB_FILE)) {
+        const initial = { users: [], seeds: [], logs: [] };
+        fs.writeFileSync(DB_FILE, JSON.stringify(initial, null, 2));
+        return initial;
+      }
+      const data = fs.readFileSync(DB_FILE, "utf-8");
+      return JSON.parse(data);
+    } catch (err) {
+      console.error("Failed to read server db.json:", err);
+      return { users: [], seeds: [], logs: [] };
+    }
+  }
+
+  function writeDb(data: any) {
+    try {
+      fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+    } catch (err) {
+      console.error("Failed to write server db.json:", err);
+    }
+  }
+
+  // --- ADVANCED AUTHENTICATION ENDPOINTS (SERVER BACKED DATABASE INTEGRATION) ---
+  app.post("/api/auth/register", (req, res) => {
+    const { name, email, password, grade } = req.body;
+    if (!name || !email || !password || !grade) {
+      return res.status(400).json({ error: "All profile fields are required for database registration." });
+    }
+
+    const dbData = readDb();
+    const existing = dbData.users.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
+    if (existing) {
+      return res.status(409).json({ error: "Email address already registered under dynamic planter ledger." });
+    }
+
+    const newUser = {
+      uid: "user_" + Math.random().toString(36).substr(2, 9),
+      name,
+      email: email.toLowerCase(),
+      grade,
+      password, // Plain for educational simulation, matching school audit metrics
+      createdAt: new Date().toISOString()
+    };
+
+    dbData.users.push(newUser);
+    writeDb(dbData);
+
+    const { password: _, ...userSafe } = newUser;
+    res.status(201).json(userSafe);
+  });
+
+  app.post("/api/auth/login", (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required for security clearance." });
+    }
+
+    const dbData = readDb();
+    const user = dbData.users.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
+    
+    if (!user) {
+      // Create first student access context gracefully to match 'student@ecofriend.org' if starting cold
+      if (email === 'student@ecofriend.org' && password === 'greenworld2026') {
+        const newUser = {
+          uid: "user_initial_hazira",
+          name: "Hazira Dudekula",
+          email: "student@ecofriend.org",
+          grade: "Beginner Grade 6",
+          password: "greenworld2026",
+          createdAt: new Date().toISOString()
+        };
+        dbData.users.push(newUser);
+        writeDb(dbData);
+        const { password: _, ...userSafe } = newUser;
+        return res.json(userSafe);
+      }
+      return res.status(401).json({ error: "Invalid academic email credentials." });
+    }
+
+    if (user.password !== password) {
+      return res.status(401).json({ error: "Incorrect password for this student account." });
+    }
+
+    const { password: _, ...userSafe } = user;
+    res.json(userSafe);
+  });
+
+  // --- DATABASE LOGS AND SEEDS PERSISTENCE ROUTES ---
+  app.post("/api/db/seeds", (req, res) => {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: "Missing authenticating uid token" });
+
+    const dbData = readDb();
+    const userSeeds = dbData.seeds.filter((s: any) => s.userId === userId);
+    res.json(userSeeds);
+  });
+
+  app.post("/api/db/seed/create", (req, res) => {
+    const { userId, plantName, soilQuality, waterSupply, climate, status } = req.body;
+    if (!userId || !plantName) {
+      return res.status(400).json({ error: "Unique owner index and botanical name required." });
+    }
+
+    const dbData = readDb();
+    const newSeed = {
+      seedId: "seed_" + Math.random().toString(36).substr(2, 9),
+      userId,
+      plantName,
+      dateSowed: new Date().toISOString(),
+      status: status || "germinated",
+      soilQuality: soilQuality || "Normal nutrient-rich garden soil",
+      waterSupply: waterSupply || "Consistent morning watering",
+      climate: climate || "Mild warm weather",
+      createdAt: new Date().toISOString()
+    };
+
+    dbData.seeds.push(newSeed);
+    writeDb(dbData);
+    res.status(201).json(newSeed);
+  });
+
+  app.post("/api/db/seed/update", (req, res) => {
+    const { seedId, userId, status, soilQuality, waterSupply, climate } = req.body;
+    if (!seedId || !userId) {
+      return res.status(400).json({ error: "Record identifier and owner context required." });
+    }
+
+    const dbData = readDb();
+    const seedIndex = dbData.seeds.findIndex((s: any) => s.seedId === seedId && s.userId === userId);
+    if (seedIndex === -1) {
+      return res.status(404).json({ error: "Seed record not found under active user bounds." });
+    }
+
+    const seed = dbData.seeds[seedIndex];
+    if (status) seed.status = status;
+    if (soilQuality) seed.soilQuality = soilQuality;
+    if (waterSupply) seed.waterSupply = waterSupply;
+    if (climate) seed.climate = climate;
+
+    dbData.seeds[seedIndex] = seed;
+    writeDb(dbData);
+    res.json(seed);
+  });
+
+  app.post("/api/db/seed/delete", (req, res) => {
+    const { seedId, userId } = req.body;
+    if (!seedId || !userId) {
+      return res.status(400).json({ error: "Identifier parameters missing." });
+    }
+
+    const dbData = readDb();
+    const filtered = dbData.seeds.filter((s: any) => !(s.seedId === seedId && s.userId === userId));
+    const countBefore = dbData.seeds.length;
+    dbData.seeds = filtered;
+    writeDb(dbData);
+    res.json({ success: countBefore > filtered.length });
+  });
+
+  app.post("/api/db/logs", (req, res) => {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: "Missing authenticating student user key." });
+
+    const dbData = readDb();
+    const studentLogs = dbData.logs.filter((l: any) => l.userId === userId);
+    res.json(studentLogs);
+  });
+
+  app.post("/api/db/log/create", (req, res) => {
+    const { userId, title, description } = req.body;
+    if (!userId || !title) {
+      return res.status(400).json({ error: "User reference and activity description header are mandatory." });
+    }
+
+    const dbData = readDb();
+    const newLog = {
+      logId: "log_" + Math.random().toString(36).substr(2, 9),
+      userId,
+      title,
+      description: description || "",
+      timestamp: new Date().toISOString()
+    };
+
+    dbData.logs.push(newLog);
+    writeDb(dbData);
+    res.status(201).json(newLog);
+  });
 
   // API Route - Weather Information
   app.post("/api/weather", (req, res) => {

@@ -1,0 +1,61 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile database registration information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Unique identifier for the user" },
+        "name": { "type": "string", "description": "Full name of the student" },
+        "email": { "type": "string", "description": "Email address" },
+        "grade": { "type": "string", "description": "Planter profile tier or grade" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Account registration timestamp" }
+      },
+      "required": ["uid", "name", "email", "grade", "createdAt"]
+    },
+    "SowedSeed": {
+      "title": "SowedSeed",
+      "description": "A seed planted by the student to grow into a plant",
+      "type": "object",
+      "properties": {
+        "seedId": { "type": "string", "description": "Unique identifier of the seed record" },
+        "userId": { "type": "string", "description": "Owner user identifier" },
+        "plantName": { "type": "string", "description": "Name of the botanical species" },
+        "dateSowed": { "type": "string", "format": "date-time", "description": "The date the seed was planted" },
+        "status": { "type": "string", "enum": ["germinated", "growing", "ready-to-harvest", "harvested"], "description": "Current agricultural state" },
+        "soilQuality": { "type": "string", "description": "Quality attributes of soil used" },
+        "waterSupply": { "type": "string", "description": "Frequency or plan of watering" },
+        "climate": { "type": "string", "description": "Local climate description" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Entry creation timestamp" }
+      },
+      "required": ["seedId", "userId", "plantName", "dateSowed", "status", "createdAt"]
+    },
+    "ActivityLog": {
+      "title": "ActivityLog",
+      "description": "School gardening ledger logs",
+      "type": "object",
+      "properties": {
+        "logId": { "type": "string", "description": "Unique identifier of the log entry" },
+        "userId": { "type": "string", "description": "User identifier who performed standard tasks" },
+        "title": { "type": "string", "description": "Activity header or type" },
+        "description": { "type": "string", "description": "Explanatory detail of achievement" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Activity action timestamp" }
+      },
+      "required": ["logId", "userId", "title", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Stores user profiles mapped by user's UID"
+    },
+    "/users/{userId}/seeds/{seedId}": {
+      "schema": "SowedSeed",
+      "description": "Sub-collection of seeds sowed under each user profile"
+    },
+    "/users/{userId}/logs/{logId}": {
+      "schema": "ActivityLog",
+      "description": "Sub-collection of gardening logs under each user"
+    }
+  }
+}
