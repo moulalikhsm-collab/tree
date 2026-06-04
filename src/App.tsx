@@ -4,7 +4,6 @@ import {
   Compass, 
   TrendingUp, 
   Camera, 
-  MessageSquare, 
   Droplets,
   BookOpen,
   User, 
@@ -20,10 +19,9 @@ import PlantRecommender from './components/PlantRecommender';
 import GrowthPredictor from './components/GrowthPredictor';
 import LeafScanner from './components/LeafScanner';
 import SoilWaterAdvisor from './components/SoilWaterAdvisor';
-import AIChatBot from './components/AIChatBot';
 import AuthPage from './components/AuthPage';
 
-type TabType = 'dashboard' | 'recommend' | 'growth' | 'vision' | 'soil' | 'chat';
+type TabType = 'dashboard' | 'recommend' | 'growth' | 'vision' | 'soil';
 
 interface UserInfo {
   name: string;
@@ -73,7 +71,6 @@ export default function App() {
         case 'growth': return 'ఎదుగుదల అంచనా';
         case 'vision': return 'ఆకు స్కాన్ AI';
         case 'soil': return 'మట్టి & నీరు';
-        case 'chat': return 'AI ప్లాంట్ బోట్';
       }
     } else if (language === 'Hindi') {
       switch (tabId) {
@@ -82,7 +79,6 @@ export default function App() {
         case 'growth': return 'विकास का पूर्वानुमान';
         case 'vision': return 'पत्ता स्कैन AI';
         case 'soil': return 'मिट्टी और सिंचाई';
-        case 'chat': return 'AI सलाहकार बॉट';
       }
     }
     // Default English
@@ -92,7 +88,6 @@ export default function App() {
       case 'growth': return 'Growth Predictor';
       case 'vision': return 'Leaf Scan AI';
       case 'soil': return 'Soil & Water';
-      case 'chat': return 'Ask Companion Bot';
     }
   };
 
@@ -178,8 +173,7 @@ export default function App() {
               { id: 'recommend', icon: Compass },
               { id: 'growth', icon: TrendingUp },
               { id: 'vision', icon: Camera },
-              { id: 'soil', icon: Droplets },
-              { id: 'chat', icon: MessageSquare }
+              { id: 'soil', icon: Droplets }
             ] as const
           ).map((tab) => {
             const Icon = tab.icon;
@@ -209,7 +203,6 @@ export default function App() {
           {activeTab === 'growth' && <GrowthPredictor language={language} />}
           {activeTab === 'vision' && <LeafScanner language={language} />}
           {activeTab === 'soil' && <SoilWaterAdvisor language={language} />}
-          {activeTab === 'chat' && <AIChatBot language={language} />}
         </div>
 
       </main>
