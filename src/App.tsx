@@ -31,10 +31,13 @@ interface UserInfo {
   grade: string;
 }
 
+export type AppLanguage = 'English' | 'Telugu' | 'Hindi';
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [currentLocation, setCurrentLocation] = useState('Pune, India');
   const [user, setUser] = useState<UserInfo | null>(null);
+  const [language, setLanguage] = useState<AppLanguage>('English');
 
   useEffect(() => {
     const cached = localStorage.getItem('ecofriend_user');
@@ -61,6 +64,38 @@ export default function App() {
     return <AuthPage onLoginSuccess={(info) => setUser(info)} />;
   }
 
+  // Multi-lingual translation mapping for main tab labels
+  const getTabLabel = (tabId: TabType) => {
+    if (language === 'Telugu') {
+      switch (tabId) {
+        case 'dashboard': return 'స్టూడెంట్ ట్రాకర్';
+        case 'recommend': return 'AI మొక్క ఎంపిక';
+        case 'growth': return 'ఎదుగుదల అంచనా';
+        case 'vision': return 'ఆకు స్కాన్ AI';
+        case 'soil': return 'మట్టి & నీరు';
+        case 'chat': return 'AI ప్లాంట్ బోట్';
+      }
+    } else if (language === 'Hindi') {
+      switch (tabId) {
+        case 'dashboard': return 'छात्र ट्रैकर';
+        case 'recommend': return 'AI पौधा चयन';
+        case 'growth': return 'विकास का पूर्वानुमान';
+        case 'vision': return 'पत्ता स्कैन AI';
+        case 'soil': return 'मिट्टी और सिंचाई';
+        case 'chat': return 'AI सलाहकार बॉट';
+      }
+    }
+    // Default English
+    switch (tabId) {
+      case 'dashboard': return 'Student Tracker';
+      case 'recommend': return 'AI Recommender';
+      case 'growth': return 'Growth Predictor';
+      case 'vision': return 'Leaf Scan AI';
+      case 'soil': return 'Soil & Water';
+      case 'chat': return 'Ask Companion Bot';
+    }
+  };
+
   return (
     <div id="ecofriend-root" className="min-h-screen bg-[#fafdfb] text-slate-800 font-sans">
       
@@ -78,15 +113,34 @@ export default function App() {
                 <h1 className="text-sm font-extrabold tracking-tight text-emerald-950 font-display flex items-center gap-1">
                   EcoFriend <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider">AI Assistant</span>
                 </h1>
-                <p className="text-[10px] text-slate-400 font-semibold tracking-wide">AI Smart Plantation Companion</p>
+                <p className="text-[10px] text-slate-400 font-semibold tracking-wide">
+                  {language === 'Telugu' ? 'తెలుగు ప్లాంటేషన్ క్లాస్‌రూమ్' : language === 'Hindi' ? 'हिंदी प्लांटेशन क्लासरूम' : 'AI Smart Plantation Companion'}
+                </p>
               </div>
+            </div>
+
+            {/* Language Selector in Header */}
+            <div className="flex items-center gap-1.5 bg-emerald-50 rounded-xl p-1 border border-emerald-100">
+              {(['English', 'Telugu', 'Hindi'] as const).map((lang) => (
+                <button
+                  key={lang}
+                  onClick={() => setLanguage(lang)}
+                  className={`px-3 py-1 rounded-lg text-[11px] font-bold tracking-tight transition-all cursor-pointer ${
+                    language === lang 
+                      ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-300' 
+                      : 'text-slate-600 hover:bg-emerald-100'
+                  }`}
+                >
+                  {lang === 'Telugu' ? 'తెలుగు' : lang === 'Hindi' ? 'हिंदी' : 'English'}
+                </button>
+              ))}
             </div>
 
             {/* Quick Actions / Bio Status */}
             <div className="flex items-center gap-4 text-xs">
               <div className="hidden sm:flex items-center gap-1.5 text-slate-500 font-medium">
                 <BookOpen className="w-4 h-4 text-emerald-600" />
-                <span>Student Hub</span>
+                <span>{language === 'Telugu' ? 'విద్యార్థి హబ్' : language === 'Hindi' ? 'विद्यार्थी हब' : 'Student Hub'}</span>
               </div>
               <div className="flex items-center gap-1.5 text-emerald-800 font-bold bg-emerald-100/60 hover:bg-emerald-100 px-3 py-1.5 rounded-2xl border border-emerald-200/50 transition-colors">
                 <User className="w-3.5 h-3.5 text-emerald-700" />
@@ -120,12 +174,12 @@ export default function App() {
         <div className="bg-white/80 border border-slate-150 p-1.5 rounded-3xl flex items-center gap-1 overflow-x-auto scrollbar-none shadow-sm">
           {(
             [
-              { id: 'dashboard', label: 'Student Tracker', icon: Sprout },
-              { id: 'recommend', label: 'AI Recommender', icon: Compass },
-              { id: 'growth', label: 'Growth Predictor', icon: TrendingUp },
-              { id: 'vision', label: 'Leaf Scan AI', icon: Camera },
-              { id: 'soil', label: 'Soil & Water', icon: Droplets },
-              { id: 'chat', label: 'Ask Companion Bot', icon: MessageSquare }
+              { id: 'dashboard', icon: Sprout },
+              { id: 'recommend', icon: Compass },
+              { id: 'growth', icon: TrendingUp },
+              { id: 'vision', icon: Camera },
+              { id: 'soil', icon: Droplets },
+              { id: 'chat', icon: MessageSquare }
             ] as const
           ).map((tab) => {
             const Icon = tab.icon;
@@ -142,7 +196,7 @@ export default function App() {
                 }`}
               >
                 <Icon className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-slate-450'}`} />
-                {tab.label}
+                {getTabLabel(tab.id)}
               </button>
             );
           })}
@@ -150,12 +204,12 @@ export default function App() {
 
         {/* Dynamic Workspace Container */}
         <div id="dynamic-workspace-canvas" className="transition-all duration-300">
-          {activeTab === 'dashboard' && <DashboardOverview onSowTrigger={handleSowSeedNotification} />}
-          {activeTab === 'recommend' && <PlantRecommender currentLocation={currentLocation} />}
-          {activeTab === 'growth' && <GrowthPredictor />}
-          {activeTab === 'vision' && <LeafScanner />}
-          {activeTab === 'soil' && <SoilWaterAdvisor />}
-          {activeTab === 'chat' && <AIChatBot />}
+          {activeTab === 'dashboard' && <DashboardOverview onSowTrigger={handleSowSeedNotification} language={language} />}
+          {activeTab === 'recommend' && <PlantRecommender currentLocation={currentLocation} language={language} />}
+          {activeTab === 'growth' && <GrowthPredictor language={language} />}
+          {activeTab === 'vision' && <LeafScanner language={language} />}
+          {activeTab === 'soil' && <SoilWaterAdvisor language={language} />}
+          {activeTab === 'chat' && <AIChatBot language={language} />}
         </div>
 
       </main>
@@ -165,7 +219,12 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-2">
           <p className="font-semibold text-slate-500">EcoFriend – AI Smart Plantation Assistant</p>
           <p className="max-w-md mx-auto leading-relaxed">
-            Helping young students and children grow healthier food and medicinal herbs organic-first. Built using Google Gemini Multimodal Diagnostic Models. No toxic chemicals, keep growing! 🌻
+            {language === 'Telugu' 
+              ? 'విద్యార్థులు మరియు పిల్లలు ఇంట్లోనే సులభంగా సహజ పద్దతిలో మొక్కలను పెంచడానికి గూగుల్ జెమిని తోడ్పాటుతో రూపొందించబడింది.' 
+              : language === 'Hindi' 
+                ? 'छात्रों और बच्चों को जैविक रूप से स्वस्थ पौधे और जड़ी-बूटियाँ उगाने में मदद करने के लिए गूगल जेमिनी के साथ संरचित।'
+                : 'Helping young students and children grow healthier food and medicinal herbs organic-first. Built using Google Gemini Multimodal Diagnostic Models. No toxic chemicals, keep growing! 🌻'
+            }
           </p>
         </div>
       </footer>

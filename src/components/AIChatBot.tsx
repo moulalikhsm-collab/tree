@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageSquare, Sparkles, Send, Loader2, Volume2, Globe, Bot } from 'lucide-react';
+import { MessageSquare, Sparkles, Send, Loader2, Bot } from 'lucide-react';
 import { ChatMessage } from '../types';
+import { AppLanguage } from '../App';
 
-interface AIChatBotProps {}
+interface AIChatBotProps {
+  language: AppLanguage;
+}
 
-export default function AIChatBot({}: AIChatBotProps) {
+export default function AIChatBot({ language: languageProp }: AIChatBotProps) {
   const [language, setLanguage] = useState<'English' | 'Telugu' | 'Hindi'>('English');
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -17,6 +20,27 @@ export default function AIChatBot({}: AIChatBotProps) {
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Sync with global header language selection
+  useEffect(() => {
+    setLanguage(languageProp);
+    
+    // Add appropriate translated botanical welcoming message if switching languages
+    const welcomeTexts = {
+      English: "Hello! I am EcoFriend's AI Plant Companion. You can ask me any botany questions or gardening help! 🌱",
+      Telugu: "నమస్కారం! నేను మీ ఈకోఫ్రెండ్ AI ప్లాంట్ సహాయకుడిని. ఏదైనా మొక్కల పెంపకం లేదా మట్టి గురించి నన్ను అడగండి! 🌱",
+      Hindi: "नमस्कार! मैं आपका ईकोफ्रेंड AI सहायक हूँ। आप मुझसे पौधों की देखभाल और मिट्टी की तैयारी पर कोई भी सवाल पूछ सकते हैं! 🌱"
+    };
+
+    setMessages([
+      {
+        id: '1',
+        sender: 'assistant',
+        text: welcomeTexts[languageProp] || welcomeTexts.English,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }
+    ]);
+  }, [languageProp]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -53,7 +77,7 @@ export default function AIChatBot({}: AIChatBotProps) {
         })
       });
 
-      if (!res.ok) throw new Error('AI Server is currently taking a nap');
+      if (!res.ok) throw new Error('AI Server is taking a nap');
       const data = await res.json();
 
       const assistantMsg: ChatMessage = {
@@ -68,7 +92,11 @@ export default function AIChatBot({}: AIChatBotProps) {
       const errorMsg: ChatMessage = {
         id: String(Date.now() + 1),
         sender: 'assistant',
-        text: "Apologies! My neural connection got disconnected. Please run the query again. 🔧",
+        text: language === 'Telugu' 
+          ? "క్షమించండి! మీ నెట్‌వర్క్ అనుసంధానం సరిగ్గా లేదు. దయచేసి మళ్ళీ ప్రయత్నించండి. 🔧"
+          : language === 'Hindi'
+            ? "क्षमा करें! नेटवर्क कनेक्शन विच्छेदित हो गया है। कृपया पुनः प्रयास करें। 🔧"
+            : "Apologies! My neural connection got disconnected. Please run the query again. 🔧",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages(prev => [...prev, errorMsg]);
@@ -82,15 +110,15 @@ export default function AIChatBot({}: AIChatBotProps) {
     switch (language) {
       case 'Telugu':
         return [
-          "నా మొక్కకు ఎంత నీరు కావాలి?",
-          "నా టమాటో మొక్క ఆకులు ఎండిపోతున్నాయి ఎందుకు?",
-          "సులభంగా పెరిగే కూరగాయలు ఏమిటి?"
+          "మొక్కకు దినసరి ఎంత నీరు ఇవ్వాలి?",
+          "ఆకులు పసుపు రంగులోకి మారుతున్నాయి ఎందుకు?",
+          "ఇంట్లో సులభంగా పెరిగే మొక్కలేవి?"
         ];
       case 'Hindi':
         return [
-          "मेरे पौधे में कौन सी बीमारी है?",
-          "घर में तुलसी का पौधा कैसे उगाएं?",
-          "गमले की मिट्टी कैसे तैयार करें?"
+          "तुलसी के पौधे की देखभाल कैसे करें?",
+          "कम धूप में उगने वाले घरेलू पौधे कौन से हैं?",
+          "जड़ सड़न (root rot) से कैसे बचें?"
         ];
       default:
         return [
@@ -112,15 +140,17 @@ export default function AIChatBot({}: AIChatBotProps) {
           </div>
           <div>
             <h3 className="text-sm font-extrabold tracking-wide uppercase flex items-center gap-1">
-              EcoFriend AI Companion <Sparkles className="w-3.5 h-3.5 text-amber-200 animate-pulse" />
+              {language === 'Telugu' ? 'ఈకోఫ్రెండ్ స్మార్ట్ సహాయకుడు' : language === 'Hindi' ? 'ईकोफ्रेंड स्मार्ट सहायक' : 'EcoFriend AI Companion'}{' '}
+              <Sparkles className="w-3.5 h-3.5 text-amber-200 animate-pulse" />
             </h3>
-            <p className="text-[10px] text-emerald-100 font-medium">Supporting multilingual student interaction</p>
+            <p className="text-[10px] text-emerald-100 font-medium">
+              {language === 'Telugu' ? 'తెలుగు, హిందీ మరియు ఇంగ్లీష్ భాషలలో విద్యార్థుల సంభాషణ' : language === 'Hindi' ? 'हिंदी, तेलुगु और अंग्रेजी भाषाओं में छात्र चर्चा' : 'Supporting multilingual student interaction'}
+            </p>
           </div>
         </div>
 
-        {/* Language selector toggle */}
+        {/* Local override selector (displays state visual but bounded with App) */}
         <div className="flex items-center gap-1.5 bg-black/10 rounded-xl p-1 border border-white/10">
-          <Globe className="w-3.5 h-3.5 text-emerald-200" />
           {(['English', 'Telugu', 'Hindi'] as const).map((lang) => (
             <button
               key={lang}
@@ -168,7 +198,9 @@ export default function AIChatBot({}: AIChatBotProps) {
             </div>
             <div className="bg-white border border-emerald-50 rounded-2xl p-3 shadow-sm flex items-center gap-2">
               <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider animate-pulse">Bot is thinking...</span>
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider animate-pulse">
+                {language === 'Telugu' ? 'సహాయకుడు సమాధానం సిద్ధం చేస్తున్నాడు...' : language === 'Hindi' ? 'सलाहकार विचार कर रहा है...' : 'Bot is thinking...'}
+              </span>
             </div>
           </div>
         )}
@@ -177,12 +209,14 @@ export default function AIChatBot({}: AIChatBotProps) {
 
       {/* Quick click tags */}
       <div className="px-4 py-2 border-t border-slate-100 bg-white flex gap-1.5 overflow-x-auto flex-nowrap scrollbar-none items-center">
-        <span className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400 whitespace-nowrap">Tap Query:</span>
+        <span className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400 whitespace-nowrap">
+          {language === 'Telugu' ? 'త్వరిత ప్రశ్నలు:' : language === 'Hindi' ? 'त्वरित प्रश्न:' : 'Tap Query:'}
+        </span>
         {getSuggestions().map((sug, i) => (
           <button
             key={i}
             onClick={() => handleSend(sug)}
-            className="text-[10px] bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-150 px-2.5 py-1 rounded-full whitespace-nowrap transition-colors cursor-pointer"
+            className="text-[10px] bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-150/60 px-2.5 py-1 rounded-full whitespace-nowrap transition-colors cursor-pointer font-medium"
           >
             {sug}
           </button>
@@ -197,14 +231,20 @@ export default function AIChatBot({}: AIChatBotProps) {
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-          placeholder={`Type message in ${language}...`}
+          placeholder={
+            language === 'Telugu' 
+              ? 'మొక్కల గురించి ప్రశ్న టైప్ చేయండి...' 
+              : language === 'Hindi' 
+                ? 'यहाँ अपना सवाल लिखें...' 
+                : `Type message in ${language}...`
+          }
           className="flex-1 text-xs text-slate-700 bg-slate-50 border border-slate-150 rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:bg-white"
         />
         <button
           id="chatbot-send-btn"
           onClick={() => handleSend()}
           disabled={loading || !inputText.trim()}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-xl transition-all duration-150 hover:scale-[1.05] disabled:opacity-40 flex items-center justify-center cursor-pointer"
+          className="bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-xl transition-all duration-150 hover:scale-[1.05] disabled:opacity-40 flex items-center justify-center cursor-pointer font-bold"
         >
           <Send className="w-4 h-4" />
         </button>
