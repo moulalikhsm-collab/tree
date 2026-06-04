@@ -78,16 +78,94 @@ export default function AIChatBot({ language: languageProp }: AIChatBotProps) {
       });
 
       if (!res.ok) throw new Error('AI Server is taking a nap');
-      const data = await res.json();
 
-      const assistantMsg: ChatMessage = {
-        id: String(Date.now() + 1),
-        sender: 'assistant',
-        text: data.text,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
+      const contentType = res.headers.get('Content-Type') || '';
+      
+      if (contentType.includes('text/event-stream')) {
+        // Create an empty assistant message which we'll update as the stream delivers chunks
+        const assistantMsgId = String(Date.now() + 1);
+        const newAssistantMsg: ChatMessage = {
+          id: assistantMsgId,
+          sender: 'assistant',
+          text: '',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        
+        setMessages(prev => [...prev, newAssistantMsg]);
+        setLoading(false); // Disable spinner since typing block has appeared
 
-      setMessages(prev => [...prev, assistantMsg]);
+        const reader = res.body?.getReader();
+        if (!reader) throw new Error('No stream reader');
+        
+        const decoder = new TextDecoder();
+        let done = false;
+        let accumulatedText = '';
+        let chunkRemainder = '';
+
+        while (!done) {
+          const { value, done: doneReading } = await reader.read();
+          done = doneReading;
+          
+          if (value) {
+            const chunk = decoder.decode(value, { stream: !done });
+            const combined = chunkRemainder + chunk;
+            const lines = combined.split('\n');
+            
+            // Retain the last unfinished line fragment
+            chunkRemainder = lines.pop() || '';
+
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (trimmed.startsWith('data: ')) {
+                const dataValue = trimmed.slice(6).trim();
+                if (dataValue === '[DONE]') continue;
+                
+                try {
+                  const parsed = JSON.parse(dataValue);
+                  if (parsed.text) {
+                    accumulatedText += parsed.text;
+                    setMessages(prev => prev.map(msg => 
+                      msg.id === assistantMsgId ? { ...msg, text: accumulatedText } : msg
+                    ));
+                  }
+                } catch (e) {
+                  // Partial chunk could fail, ignore and continue
+                }
+              }
+            }
+          }
+        }
+        
+        // Handle final residual chunk if any
+        if (chunkRemainder) {
+          const trimmed = chunkRemainder.trim();
+          if (trimmed.startsWith('data: ')) {
+            const dataValue = trimmed.slice(6).trim();
+            if (dataValue !== '[DONE]') {
+              try {
+                const parsed = JSON.parse(dataValue);
+                if (parsed.text) {
+                  accumulatedText += parsed.text;
+                  setMessages(prev => prev.map(msg => 
+                    msg.id === assistantMsgId ? { ...msg, text: accumulatedText } : msg
+                  ));
+                }
+              } catch (e) {}
+            }
+          }
+        }
+      } else {
+        // Fallback for simple flat JSON response
+        const data = await res.json();
+        const assistantMsg: ChatMessage = {
+          id: String(Date.now() + 1),
+          sender: 'assistant',
+          text: data.text,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        setMessages(prev => [...prev, assistantMsg]);
+        setLoading(false);
+      }
     } catch (err: any) {
       const errorMsg: ChatMessage = {
         id: String(Date.now() + 1),

@@ -626,15 +626,41 @@ async function startServer() {
     }
   });
 
-  // API Route - Trilingual Chatbot
+  // API Route - Trilingual Chatbot (Streaming Version)
   app.post("/api/chat", async (req, res) => {
     const { messages, language } = req.body;
     const lang = language || "English";
+
+    // Prepare headers for SSE streaming
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
     try {
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey || apiKey === "MY_GEMINI_API_KEY") {
-        console.log("No valid GEMINI_API_KEY. Running trilingual chatbot offline fallback.");
-        return res.json(getFallbackChatResponse(messages, lang));
+        console.log("No valid GEMINI_API_KEY. Running simulated trilingual chatbot streaming fallback.");
+        const fallbackObj = getFallbackChatResponse(messages, lang);
+        const fallbackText = fallbackObj.text || "";
+        
+        // Split by word and spacing blocks to simulate human typing
+        const tokens = fallbackText.split(/(\s+)/);
+        let i = 0;
+        const interval = setInterval(() => {
+          if (i < tokens.length) {
+            res.write(`data: ${JSON.stringify({ text: tokens[i] })}\n\n`);
+            i++;
+          } else {
+            res.write('data: [DONE]\n\n');
+            res.end();
+            clearInterval(interval);
+          }
+        }, 15);
+        
+        req.on('close', () => {
+          clearInterval(interval);
+        });
+        return;
       }
 
       // Construct a conversation thread
@@ -651,7 +677,7 @@ async function startServer() {
       const currentMessagePrompt = `Conversation History:\n${historyPrompt}\n\nRespond to the last User statement in the chosen language (${lang}). Ensure formatting uses elegant markdown paragraphs and bullet points where useful.`;
 
       const ai = getGeminiClient();
-      const response = await ai.models.generateContent({
+      const responseStream = await ai.models.generateContentStream({
         model: "gemini-3.5-flash",
         contents: currentMessagePrompt,
         config: {
@@ -660,12 +686,24 @@ async function startServer() {
         }
       });
 
-      res.json({
-        text: response.text || "Apologies, I couldn't formulate a response. Please ask again!"
-      });
+      for await (const chunk of responseStream) {
+        if (chunk.text) {
+          res.write(`data: ${JSON.stringify({ text: chunk.text })}\n\n`);
+        }
+      }
+
+      res.write('data: [DONE]\n\n');
+      res.end();
     } catch (error: any) {
-      console.warn("Chat API error occurred. Falling back to multi-language offline response:", error);
-      res.json(getFallbackChatResponse(messages, lang));
+      console.warn("Chat API streaming error occurred. Falling back to simple simulated streaming:", error);
+      try {
+        const fallbackObj = getFallbackChatResponse(messages, lang);
+        res.write(`data: ${JSON.stringify({ text: fallbackObj.text || "Apologies, I encountered an error. Please try again!" })}\n\n`);
+        res.write('data: [DONE]\n\n');
+        res.end();
+      } catch (err) {
+        if (!res.writableEnded) res.end();
+      }
     }
   });
 
