@@ -118,6 +118,41 @@ export default function AuthPage({ onLoginSuccess }: AuthPageProps) {
             </div>
           )}
 
+          {error && error.includes('operation-not-allowed') && (
+            <div className="bg-amber-50/80 border border-amber-200 text-slate-800 p-5 rounded-2xl text-xs space-y-3 animate-fade-in shadow-sm">
+              <div className="flex items-center gap-2 text-amber-800 font-bold">
+                <Sparkles className="w-4 h-4 text-amber-600" />
+                <span>How to Enable Authentication:</span>
+              </div>
+              <p className="text-slate-600 leading-normal">
+                To enable email/password authentication for your newly provisioned Firebase project:
+              </p>
+              <ol className="list-decimal list-inside space-y-2 text-slate-600 pl-1 leading-normal">
+                <li>
+                  Open the <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" className="text-emerald-600 font-bold hover:underline">Firebase Console</a>.
+                </li>
+                <li>
+                  Select your active project: <span className="font-mono bg-amber-100/50 text-amber-955 px-1.5 py-0.5 rounded font-black break-all text-[11px]">hallowed-zenith-6jwpf</span>
+                </li>
+                <li>
+                  In the left sidebar menu, expand <strong>Build</strong> and click <strong>Authentication</strong>.
+                </li>
+                <li>
+                  Navigate to the <strong>Sign-in method</strong> tab.
+                </li>
+                <li>
+                  Click <strong>Add new provider</strong> (or <strong>Get Started</strong> if visiting for the first time) and select <strong>Email/Password</strong>.
+                </li>
+                <li>
+                  Toggle the <strong>Email/Password</strong> switch to <strong>Enable</strong> and click <strong>Save</strong>.
+                </li>
+              </ol>
+              <div className="pt-2 text-[10px] text-amber-700/80 italic">
+                Once enabled, refresh this page and you can sign in or register instantly with the cloud database!
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             
             {!isLogin && (
