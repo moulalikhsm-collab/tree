@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 import fs from "fs";
 import { createServer as createViteServer } from "vite";
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, ThinkingLevel } from "@google/genai";
 
 const PORT = 3000;
 
@@ -256,7 +256,12 @@ function getFallbackChatResponse(messages: any[], language: string) {
     : "";
 
   if (lang === "Telugu") {
-    if (lastMsg.includes("నీరు") || lastMsg.includes("water") || lastMsg.includes("పోయా")) {
+    if (lastMsg.includes("ఆరోగ్యం") || lastMsg.includes("ఆరోగ్యంగా") || lastMsg.includes("బాగుందా") || lastMsg.includes("healthy") || lastMsg.includes("health")) {
+      return {
+        text: "మొక్క ఆరోగ్యంగా ఉందో లేదో తెలుసుకోవడానికి ఈ అంశాలను గమనించండి:\n\n1. **ఆకులు**: ఆకులు ప్రకాశవంతమైన ఆకుపచ్చ రంగులో, నిటారుగా మరియు గట్టిగా ఉంటాయి (వంగిపోవు లేదా రాలిపోవు).\n2. **ఎదుగుదల**: కొత్త చిగుర్లు, ఆకులు లేదా మొగ్గలు క్రమం తప్పకుండా వస్తుంటాయి.\n3. **వేర్లు**: కుండీ అడుగున ఉండే వేర్లు తెల్లగా, గట్టిగా ఉంటాయి (నల్లగా, మెత్తగా ఉండవు).\n4. **మట్టి**: మట్టిలో పురుగులు లేకుండా, తేమ తగినంతగా ఉంటుంది.\n\nఆకులు ముడుచుకుపోవడం లేదా పసుపు రంగులోకి మారడం జరిగితే వెంటనే సేంద్రీయ ఎరువు లేదా వేపనూనె వాడండి! 🌿"
+      };
+    }
+    if (lastMsg.includes("నీరు") || lastMsg.includes("water") || lastMsg.includes("పోయా") || lastMsg.includes("తేమ")) {
       return {
         text: "మొక్కకు నీరు పెట్టేటప్పుడు ఎల్లప్పుడూ పై మట్టి పొర (1 ఇంచ్) ఎండిపోయే వరకు వేచి ఉండాలి. టొమాటోలకు ప్రతిరోజూ ఉదయం 200ml సరిపోతుంది. కుండీలో రంధ్రాలు సరిగ్గా ఉన్నాయో లేదో చూసుకోండి! 💧"
       };
@@ -277,6 +282,11 @@ function getFallbackChatResponse(messages: any[], language: string) {
   }
 
   if (lang === "Hindi") {
+    if (lastMsg.includes("स्वस्थ") || lastMsg.includes("सेहत") || lastMsg.includes("तंदुरुस्त") || lastMsg.includes("healthy") || lastMsg.includes("health")) {
+      return {
+        text: "पौधा स्वस्थ है या नहीं, यह जानने के लिए निम्नलिखित मुख्य बातों पर ध्यान दें:\n\n1. **पत्तियां**: पत्तियां चमकदार, गहरी हरी और सख्त होती हैं (ढीली, मुरझाई या लटकी हुई नहीं)।\n2. **विकास (ग्रोथ)**: नए पत्ते, टहनियाँ और कलियाँ नियमित रूप से निकलती रहती हैं।\n3. **जड़ें**: गमले के निचले हिस्से की जड़ें सफेद या हल्की मटमैली और मजबूत होनी चाहिए (काली या सड़ी हुई नहीं)।\n4. **फूल और फल**: पौधा समय पर फूल और फल देने की अच्छी क्षमता दर्शाता है।\n\nयदि पत्तियाँ पीली हो रही हैं या धब्बे हैं, तो समझें कि पौधे को उचित धूप या खाद की आवश्यकता है! 🌿"
+      };
+    }
     if (lastMsg.includes("पानी") || lastMsg.includes("water") || lastMsg.includes("सिंचाई")) {
       return {
         text: "पौधे को पानी तभी दें जब गमले की ऊपरी 1 इंच मिट्टी सूखी महसूस हो। अधिक पानी देने से जड़ें सड़ सकती हैं। सुबह के समय पानी देना सबसे अच्छा होता है! 💧"
@@ -298,6 +308,11 @@ function getFallbackChatResponse(messages: any[], language: string) {
   }
 
   // English fallback
+  if (lastMsg.includes("health") || lastMsg.includes("healthy") || lastMsg.includes("well") || lastMsg.includes("check") || lastMsg.includes("condition") || lastMsg.includes("happy")) {
+    return {
+      text: "Here is how you can tell if your plant is healthy and flourishing:\n\n1. **Vibrant Leaves**: Foliage should be crisp, firm (high turgidity), and show rich colors specific to the species (usually deep green) without limpness.\n2. **Active Growth**: Look for new leaf buds, fresh shoots, and healthy stems sprouting periodically.\n3. **Strong Roots**: Healthy roots are firm, sweet-scented, and white or tan. Mushy, black, or smelling roots suggest overwatering (root rot).\n4. **Pest-Free Surfaces**: Inspect leaf undersides and joints regularly for webbing, sticky sap, or holes.\n\nKeep observing your plant's water intake and sunlight to maintain this vitality! 🌿"
+    };
+  }
   if (lastMsg.includes("water") || lastMsg.includes("moist") || lastMsg.includes("irrigation")) {
     return {
       text: "Always test the top 1-inch soil dryness before watering potted plants. Early morning is ideal so that foliage dries during the day, preventing root fungal infections! 💧"
@@ -820,7 +835,7 @@ async function startServer() {
 
   // API Route - Trilingual Chatbot (Streaming Version)
   app.post("/api/chat", async (req, res) => {
-    const { messages, language } = req.body;
+    const { messages, language, thinking } = req.body;
     const lang = language || "English";
 
     // Prepare headers for SSE streaming
@@ -869,14 +884,41 @@ async function startServer() {
       const currentMessagePrompt = `Conversation History:\n${historyPrompt}\n\nRespond to the last User statement in the chosen language (${lang}). Ensure formatting uses elegant markdown paragraphs and bullet points where useful.`;
 
       const ai = getGeminiClient();
-      const responseStream = await ai.models.generateContentStream({
-        model: "gemini-3.5-flash",
-        contents: currentMessagePrompt,
-        config: {
-          systemInstruction: systemGuide,
-          temperature: 0.7,
+      const modelToUse = thinking ? "gemini-3.1-pro-preview" : "gemini-3.5-flash";
+      const configObj: any = {
+        systemInstruction: systemGuide,
+        temperature: 0.7,
+      };
+
+      if (thinking) {
+        configObj.thinkingConfig = {
+          thinkingLevel: ThinkingLevel.HIGH,
+        };
+      }
+
+      let responseStream;
+      try {
+        responseStream = await ai.models.generateContentStream({
+          model: modelToUse,
+          contents: currentMessagePrompt,
+          config: configObj,
+        });
+      } catch (streamErr: any) {
+        if (modelToUse !== "gemini-3.5-flash") {
+          console.warn(`Real-time streaming failed with ${modelToUse}. Falling back to gemini-3.5-flash... Error:`, streamErr?.message || streamErr);
+          const backupConfig = {
+            systemInstruction: systemGuide,
+            temperature: 0.7,
+          };
+          responseStream = await ai.models.generateContentStream({
+            model: "gemini-3.5-flash",
+            contents: currentMessagePrompt,
+            config: backupConfig,
+          });
+        } else {
+          throw streamErr;
         }
-      });
+      }
 
       for await (const chunk of responseStream) {
         if (chunk.text) {
