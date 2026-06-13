@@ -627,38 +627,109 @@ async function startServer() {
     res.status(201).json(newLog);
   });
 
-  // API Route - Weather Information
-  app.post("/api/weather", (req, res) => {
+  // Helper to convert WMO Weather Codes (WMO code list) to friendly conditions
+  function getWeatherConditionByCode(code: number): string {
+    if (code === 0) return "Clear Sky";
+    if (code >= 1 && code <= 3) return "Partly Cloudy";
+    if (code === 45 || code === 48) return "Foggy";
+    if (code >= 51 && code <= 55) return "Drizzle";
+    if (code >= 61 && code <= 65) return "Rainy";
+    if (code === 66 || code === 67) return "Freezing Rain";
+    if (code >= 71 && code <= 77) return "Snowy";
+    if (code >= 80 && code <= 82) return "Rain Showers";
+    if (code === 85 || code === 86) return "Snow Showers";
+    if (code >= 95) return "Thunderstorm";
+    return "Partly Cloudy";
+  }
+
+  // API Route - Weather Information with real-time Open-Meteo lookup
+  app.post("/api/weather", async (req, res) => {
     const { location } = req.body;
     const loc = location || "Pune, India";
     
-    // Custom simulated weather depending on location name for rich client metrics
-    let temp = 28;
-    let humidity = 65;
-    let condition = "Partly Cloudy";
-    
-    const lower = loc.toLowerCase();
-    if (lower.includes("delhi") || lower.includes("north") || lower.includes("dry")) {
-      temp = 34;
-      humidity = 40;
-      condition = "Sunny & Warm";
-    } else if (lower.includes("pune") || lower.includes("bangalore") || lower.includes("hills")) {
-      temp = 24;
-      humidity = 70;
-      condition = "Mild & Cool";
-    } else if (lower.includes("rain") || lower.includes("mumbai") || lower.includes("kerala")) {
-      temp = 26;
-      humidity = 85;
-      condition = "Humid Rain Showers";
+    try {
+      // 1. Geocode location using Open-Meteo Geocoding API
+      const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(loc)}&count=1&language=en&format=json`;
+      const geoRes = await fetch(geoUrl);
+      if (!geoRes.ok) throw new Error("Geocoding service error");
+      const geoData: any = await geoRes.json();
+
+      if (!geoData.results || geoData.results.length === 0) {
+        throw new Error("Specified location could not be geocoded by Open-Meteo");
+      }
+
+      const { latitude, longitude, name, country } = geoData.results[0];
+      const resolvedLocationName = country ? `${name}, ${country}` : name;
+
+      // 2. Fetch live weather using computed coordinates
+      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;
+      const wRes = await fetch(weatherUrl);
+      if (!wRes.ok) throw new Error("Weather forecast service returned an error status");
+      const wData: any = await wRes.json();
+
+      const temp = Math.round(wData.current.temperature_2m ?? 25);
+      const humidity = Math.round(wData.current.relative_humidity_2m ?? 60);
+      const condition = getWeatherConditionByCode(wData.current.weather_code ?? 0);
+
+      // 3. Build a 3-day forecast from daily returned lists
+      const forecast: any[] = [];
+      const days = ["Tomorrow", "Day after", "In 3 Days"];
+      const dailyCodes = wData.daily?.weather_code || [];
+      const dailyMaxTemp = wData.daily?.temperature_2m_max || [];
+
+      for (let i = 1; i <= 3; i++) {
+        const forecastDayName = days[i - 1];
+        const forecastTemp = Math.round(dailyMaxTemp[i] ?? (temp + Math.floor(Math.random() * 3) - 1));
+        const forecastCondCode = dailyCodes[i] ?? 0;
+        const forecastCond = getWeatherConditionByCode(forecastCondCode);
+
+        forecast.push({
+          day: forecastDayName,
+          temp: forecastTemp,
+          condition: forecastCond
+        });
+      }
+
+      console.log(`Live agricultural weather fetched successfully for "${resolvedLocationName}": ${temp}°C, ${humidity}%, ${condition}`);
+      return res.json({
+        temp,
+        humidity,
+        condition,
+        location: resolvedLocationName,
+        forecast
+      });
+
+    } catch (apiErr: any) {
+      console.warn(`Live weather API failed for "${loc}". Error:`, apiErr?.message || apiErr, "- Reverting to intelligent local simulation fallback.");
+      
+      // Custom simulated weather depending on location name for rich client metrics
+      let temp = 28;
+      let humidity = 65;
+      let condition = "Partly Cloudy";
+      
+      const lower = loc.toLowerCase();
+      if (lower.includes("delhi") || lower.includes("north") || lower.includes("dry")) {
+        temp = 34;
+        humidity = 40;
+        condition = "Sunny & Warm";
+      } else if (lower.includes("pune") || lower.includes("bangalore") || lower.includes("hills")) {
+        temp = 24;
+        humidity = 70;
+        condition = "Mild & Cool";
+      } else if (lower.includes("rain") || lower.includes("mumbai") || lower.includes("kerala")) {
+        temp = 26;
+        humidity = 85;
+        condition = "Humid Rain Showers";
+      }
+
+      const forecast = [
+        { day: "Tomorrow", temp: temp + Math.floor(Math.random() * 3) - 1, condition: condition },
+        { day: "Day after", temp: temp + Math.floor(Math.random() * 3) - 1, condition: condition },
+        { day: "In 3 Days", temp: temp + Math.floor(Math.random() * 3) - 1, condition: "Sunny" },
+      ];
+
+      return res.json({ temp, humidity, condition, location: loc, forecast });
     }
-
-    const forecast = [
-      { day: "Tomorrow", temp: temp + Math.floor(Math.random() * 3) - 1, condition: condition },
-      { day: "Day after", temp: temp + Math.floor(Math.random() * 3) - 1, condition: condition },
-      { day: "In 3 Days", temp: temp + Math.floor(Math.random() * 3) - 1, condition: "Sunny" },
-    ];
-
-    res.json({ temp, humidity, condition, location: loc, forecast });
   });
 
   // API Route - Plant Recommendation Engine
