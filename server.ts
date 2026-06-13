@@ -642,26 +642,65 @@ async function startServer() {
     return "Partly Cloudy";
   }
 
-  // API Route - Weather Information with real-time Open-Meteo lookup
+  // API Route - Weather Information with real-time Open-Meteo lookup and coordinate support
   app.post("/api/weather", async (req, res) => {
-    const { location } = req.body;
-    const loc = location || "Pune, India";
+    const { location, latitude: reqLat, longitude: reqLng } = req.body;
     
-    try {
-      // 1. Geocode location using Open-Meteo Geocoding API
-      const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(loc)}&count=1&language=en&format=json`;
-      const geoRes = await fetch(geoUrl);
-      if (!geoRes.ok) throw new Error("Geocoding service error");
-      const geoData: any = await geoRes.json();
+    let latitude = reqLat;
+    let longitude = reqLng;
+    let resolvedLocationName = location || "Pune, India";
 
-      if (!geoData.results || geoData.results.length === 0) {
-        throw new Error("Specified location could not be geocoded by Open-Meteo");
+    try {
+      if (latitude !== undefined && longitude !== undefined) {
+        // Reverse geocode to get a readable location name
+        try {
+          const revGeoUrl = `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=en`;
+          const revRes = await fetch(revGeoUrl, {
+            headers: {
+              "User-Agent": "EcoFriend-Plantation-Assistant/1.0"
+            }
+          });
+          if (revRes.ok) {
+            const revData: any = await revRes.json();
+            const address = revData.address || {};
+            const city = address.city || address.town || address.village || address.suburb || address.county || "";
+            const country = address.country || "";
+            if (city) {
+              resolvedLocationName = country ? `${city}, ${country}` : city;
+            } else if (revData.display_name) {
+              // Extract the first two segments of display_name
+              const parts = revData.display_name.split(",");
+              resolvedLocationName = parts.slice(0, 2).map((p: string) => p.trim()).join(", ");
+            } else {
+              resolvedLocationName = `${Number(latitude).toFixed(2)}°N, ${Number(longitude).toFixed(2)}°E`;
+            }
+          } else {
+            resolvedLocationName = `${Number(latitude).toFixed(2)}°N, ${Number(longitude).toFixed(2)}°E`;
+          }
+        } catch (revErr) {
+          console.warn("Reverse geocode failed, using raw coordinates name:", revErr);
+          resolvedLocationName = `${Number(latitude).toFixed(2)}°N, ${Number(longitude).toFixed(2)}°E`;
+        }
+      } else {
+        // Geocode location using Open-Meteo Geocoding API
+        const loc = resolvedLocationName;
+        const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(loc)}&count=1&language=en&format=json`;
+        const geoRes = await fetch(geoUrl);
+        if (!geoRes.ok) throw new Error("Geocoding service error");
+        const geoData: any = await geoRes.json();
+
+        if (!geoData.results || geoData.results.length === 0) {
+          throw new Error("Specified location could not be geocoded by Open-Meteo");
+        }
+
+        const firstResult = geoData.results[0];
+        latitude = firstResult.latitude;
+        longitude = firstResult.longitude;
+        const { name, country } = firstResult;
+        resolvedLocationName = country ? `${name}, ${country}` : name;
       }
 
-      const { latitude, longitude, name, country } = geoData.results[0];
-      const resolvedLocationName = country ? `${name}, ${country}` : name;
-
-      // 2. Fetch live weather using computed coordinates
+      // 2. Fetch live weather using computed/provided coordinates
       const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;
       const wRes = await fetch(weatherUrl);
       if (!wRes.ok) throw new Error("Weather forecast service returned an error status");
@@ -700,14 +739,14 @@ async function startServer() {
       });
 
     } catch (apiErr: any) {
-      console.warn(`Live weather API failed for "${loc}". Error:`, apiErr?.message || apiErr, "- Reverting to intelligent local simulation fallback.");
+      console.warn(`Live weather API failed for "${resolvedLocationName}". Error:`, apiErr?.message || apiErr, "- Reverting to intelligent local simulation fallback.");
       
       // Custom simulated weather depending on location name for rich client metrics
       let temp = 28;
       let humidity = 65;
       let condition = "Partly Cloudy";
       
-      const lower = loc.toLowerCase();
+      const lower = resolvedLocationName.toLowerCase();
       if (lower.includes("delhi") || lower.includes("north") || lower.includes("dry")) {
         temp = 34;
         humidity = 40;
@@ -728,7 +767,7 @@ async function startServer() {
         { day: "In 3 Days", temp: temp + Math.floor(Math.random() * 3) - 1, condition: "Sunny" },
       ];
 
-      return res.json({ temp, humidity, condition, location: loc, forecast });
+      return res.json({ temp, humidity, condition, location: resolvedLocationName, forecast });
     }
   });
 

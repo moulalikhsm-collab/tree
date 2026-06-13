@@ -1,6 +1,6 @@
 {
   "name": "EcoFriend – AI Smart Plantation Assistant",
   "description": "EcoFriend helps students and beginners grow plants successfully with personalized climate analysis, soil intelligence, watering management, growth predictions, disease diagnosis, and a multilingual AI bot.",
-  "requestFramePermissions": ["camera"],
+  "requestFramePermissions": ["camera", "geolocation"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

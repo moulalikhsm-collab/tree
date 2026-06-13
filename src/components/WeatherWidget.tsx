@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Cloud, Sun, CloudRain, Droplets, Thermometer, MapPin, Loader2, AlertTriangle } from 'lucide-react';
+import { Cloud, Sun, CloudRain, Droplets, Thermometer, MapPin, Loader2, AlertTriangle, Locate } from 'lucide-react';
 import { WeatherInfo } from '../types';
 
 interface WeatherWidgetProps {
@@ -26,6 +26,7 @@ export default function WeatherWidget({ location, onLocationChange, onWeatherLoa
       if (!res.ok) throw new Error('Failed to load weather');
       const data: WeatherInfo = await res.json();
       setWeather(data);
+      setInputText(data.location);
       if (onWeatherLoaded) {
         onWeatherLoaded(data);
       }
@@ -34,6 +35,52 @@ export default function WeatherWidget({ location, onLocationChange, onWeatherLoa
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDetectLocation = () => {
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported by your browser.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const res = await fetch('/api/weather', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ latitude, longitude })
+          });
+          if (!res.ok) throw new Error('Failed to retrieve localized weather report');
+          const data: WeatherInfo = await res.json();
+          setWeather(data);
+          setInputText(data.location);
+          onLocationChange(data.location);
+          if (onWeatherLoaded) {
+            onWeatherLoaded(data);
+          }
+        } catch (err: any) {
+          setError('Could not fetch climate data for detected coordinates.');
+        } finally {
+          setLoading(false);
+        }
+      },
+      (geoErr) => {
+        let msg = 'Could not access your physical GPS coordinates.';
+        if (geoErr.code === 1) {
+          msg = 'Location lookup permission denied. Please allow location access in your browser.';
+        } else if (geoErr.code === 2) {
+          msg = 'Physical position is currently unavailable.';
+        } else if (geoErr.code === 3) {
+          msg = 'Coordinates request timed out.';
+        }
+        setError(msg);
+        setLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
   };
 
   useEffect(() => {
@@ -64,17 +111,27 @@ export default function WeatherWidget({ location, onLocationChange, onWeatherLoa
           <p className="text-xs text-slate-500 mt-0.5">Real-time agricultural environment advisor</p>
         </div>
         
-        <form onSubmit={handleSubmit} className="flex gap-2 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-48">
-            <MapPin className="absolute left-2.5 top-2.5 w-4 h-4 text-emerald-600" />
+        <form onSubmit={handleSubmit} className="flex gap-2 w-full sm:w-auto items-center">
+          <div className="relative flex-1 sm:w-56">
+            <MapPin className="absolute left-2.5 top-2.5 w-4 h-4 text-emerald-600 pointer-events-none" />
             <input
               id="weather-location-input"
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               placeholder="e.g. Pune, India"
-              className="w-full text-xs bg-emerald-50/50 border border-emerald-100 rounded-lg pl-8 pr-2 py-2 text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="w-full text-xs bg-emerald-50/50 border border-emerald-100 rounded-lg pl-8 pr-8 py-2 text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500"
             />
+            <button
+              id="weather-detect-gps-btn"
+              type="button"
+              onClick={handleDetectLocation}
+              disabled={loading}
+              title="Detect my current location"
+              className="absolute right-2.5 top-2.5 text-emerald-600 hover:text-emerald-800 disabled:opacity-50 transition-colors"
+            >
+              <Locate className="w-4 h-4" />
+            </button>
           </div>
           <button
             id="weather-update-btn"
