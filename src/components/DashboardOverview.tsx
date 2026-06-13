@@ -155,6 +155,135 @@ const schedulerTexts = {
   }
 };
 
+const careTipsTexts = {
+  English: {
+    sectionTitle: "Botanical Checkups & Plant Care Tips",
+    sectionSub: "How to tell if your pot specimens are flourishing or need immediate attention",
+    healthyTitle: "Signs of Healthy Plants (Vibrant & Flourishing)",
+    distressTitle: "Symptoms of Plant Distress (Needs Immediate Attention)",
+    healthyList: [
+      {
+        title: "Vibrant Foliage",
+        desc: "Bright, deep green or species-specific rich leaf colors without limpness."
+      },
+      {
+        title: "Strong Stems",
+        desc: "Stiff, upright growth layers with robust stem structural integrity."
+      },
+      {
+        title: "Active Buds",
+        desc: "Periodic appearance of fresh shoots, new glossy leaf buds, or blossoms."
+      },
+      {
+        title: "Healthy Roots",
+        desc: "White or light-tan firm roots with an earthy fresh smell."
+      }
+    ],
+    distressList: [
+      {
+        title: "Yellowing Leaves",
+        desc: "Often signals overwatering, poor drainage, or nutrient deficiencies."
+      },
+      {
+        title: "Brown Tips/Margins",
+        desc: "Indicates underwatering, dry room air, or chemical-burn toxicity."
+      },
+      {
+        title: "Limp, Drooping Canopy",
+        desc: "Caused by severe dehydration or early onset root rot disease."
+      },
+      {
+        title: "Webbing or Spots",
+        desc: "Signs of active Spider Mites, insect infestations, or scale pests."
+      }
+    ]
+  },
+  Telugu: {
+    sectionTitle: "మొక్కల సంరక్షణ చిట్కాలు & ఆరోగ్య పరీక్ష",
+    sectionSub: "మీ కుండీల్లోని మొక్కలు ఆరోగ్యంగా ఉన్నాయో లేదా ప్రత్యేక శ్రద్ధ అవసరమో ఎలా గుర్తించాలి",
+    healthyTitle: "ఆరోగ్యకరమైన మొక్కల లక్షణాలు (నిత్యనూతనం & సక్రియం)",
+    distressTitle: "మొక్కల నిస్సత్తువ లక్షణాలు (తక్షణ శ్రద్ధ అవసరం)",
+    healthyList: [
+      {
+        title: "ప్రకాశవంతమైన ఆకులు",
+        desc: "మొక్కకు సరిపోయే ముదురు ఆకుపచ్చ రంగు మరియు దృఢత్వం."
+      },
+      {
+        title: "బలమైన కొమ్మలు",
+        desc: "నిటారుగా నిలబడే దృఢమైన వ్యవస్థ మరియు స్థిరమైన కొమ్మలు."
+      },
+      {
+        title: "కొత్త కొత్త రెమ్మలు",
+        desc: "నిరంతరం వచ్చే పచ్చని మొలకలు, వేగవంతమైన మొగ్గలు."
+      },
+      {
+        title: "దృఢమైన వేర్లు",
+        desc: "తెలుపు లేదా మట్టి రంగులో ఉండే ఆరోగ్యకరమైన మరియు గట్టి వేర్లు."
+      }
+    ],
+    distressList: [
+      {
+        title: "పసుపు రంగు ఆకులు",
+        desc: "ఎక్కువ నీరు పోయడం, సరిపోని పోషకాలు లేదా పేలవమైన డ్రైనేజ్ కారణం కావచ్చు."
+      },
+      {
+        title: "ఎండిపోయిన అంచులు",
+        desc: "అపసవ్యమైన సూర్యరశ్మి, తక్కువ తేమ లేదా లవణాల అధిక క్రియ."
+      },
+      {
+        title: "వంగిపోయిన కొమ్మలు",
+        desc: "తీవ్రమైన ఎండ దెబ్బ లేదా వేర్ల కుళ్ళు సమస్య వల్ల సంభవించవచ్చు."
+      },
+      {
+        title: "బూజు లేదా మచ్చలు",
+        desc: "పురుగులు లేదా కీటకాల దాడి మరియు బూజు తెగుళ్లకు సంకేతం."
+      }
+    ]
+  },
+  Hindi: {
+    sectionTitle: "पौधों की देखभाल के नुस्खे और स्वास्थ्य परीक्षण",
+    sectionSub: "जानें कि आपके गमलों के पौधे फल-फूल रहे हैं या उन्हें तुरंत विशेष देखभाल की आवश्यकता है",
+    healthyTitle: "स्वस्थ पौधों के लक्षण (ऊर्जावान और जीवंत)",
+    distressTitle: "पौधों के संकट के लक्षण (तुरंत ध्यान देने की आवश्यकता)",
+    healthyList: [
+      {
+        title: "चमकदार पत्तियां",
+        desc: "चमकदार, गहरा हरा या प्रजाति-विशिष्ट समृद्ध पत्ती का रंग जो दृढ़ हो।"
+      },
+      {
+        title: "मजबूत तने",
+        desc: "सीधे खड़े रहने वाले तने और उत्कृष्ट संरचनात्मक मजबूती।"
+      },
+      {
+        title: "सक्रिय अंकुरण",
+        desc: "नए पत्तों की कोपलें, कलियों और फूलों का नियमित रूप से आना।"
+      },
+      {
+        title: "स्वस्थ जड़ें",
+        desc: "सफेद या हल्की भूरी, गंधमुक्त और मजबूत जड़ें।"
+      }
+    ],
+    distressList: [
+      {
+        title: "पत्तियों का पीला पड़ना",
+        desc: "यह अक्सर अत्यधिक पानी, खराब जल निकासी या पोषक तत्वों की कमी का संकेत है।"
+      },
+      {
+        title: "सूखे या भूरे किनारे",
+        desc: "कम पानी देना, हवा में रूखापन या रासायनिक खाद की अधिकता।"
+      },
+      {
+        title: "मुरझाई हुई कोमल शाखाएं",
+        desc: "गंभीर निर्जलीकरण या जड़ों के सड़ने (रूट रॉट) के शुरुआती लक्षण।"
+      },
+      {
+        title: "मकड़ी के जाले या धब्बे",
+        desc: "सक्रिय मकड़ी के कीटों (माइट्स), एफिड्स या फंगल संक्रमण का संकेत।"
+      }
+    ]
+  }
+};
+
 export default function DashboardOverview({ onSowTrigger, language, user }: DashboardOverviewProps) {
   // Collection of virtual student pots
   const [pots, setPots] = useState<PlantTracker[]>([]);
@@ -740,6 +869,7 @@ export default function DashboardOverview({ onSowTrigger, language, user }: Dash
   };
 
   const activeDue = getDueReminders();
+  const currentTips = careTipsTexts[language] || careTipsTexts.English;
 
   return (
     <div className="space-y-6">
@@ -1347,6 +1477,79 @@ export default function DashboardOverview({ onSowTrigger, language, user }: Dash
           )}
         </div>
 
+      </div>
+
+      {/* 🌿 Plant Care Tips Section */}
+      <div id="plant-care-tips-section" className="bg-white border border-slate-150 rounded-3xl p-6 shadow-sm space-y-6">
+        <div className="border-b border-slate-100 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-emerald-500 text-white rounded-2xl shadow-sm">
+              <Sprout className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-base font-extrabold text-slate-800 tracking-tight">
+                {currentTips.sectionTitle}
+              </h2>
+              <p className="text-xs text-slate-500">
+                {currentTips.sectionSub}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Healthy Column */}
+          <div id="healthy-indicators-col" className="bg-emerald-50/10 border border-emerald-100/60 rounded-2xl p-5 space-y-4">
+            <h3 className="text-xs font-black text-emerald-800 uppercase tracking-widest flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              {currentTips.healthyTitle}
+            </h3>
+
+            <div className="space-y-3">
+              {currentTips.healthyList.map((item, idx) => (
+                <div key={idx} className="bg-white border border-emerald-50 rounded-xl p-3.5 shadow-xs hover:border-emerald-200 transition-colors">
+                  <div className="flex items-start gap-2.5">
+                    <div className="mt-0.5 p-1 bg-emerald-50 text-emerald-600 rounded-lg flex-shrink-0">
+                      <Heart className="w-3.5 h-3.5 fill-emerald-500 text-emerald-500" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-800">{item.title}</h4>
+                      <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                        {item.desc}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Distress Column */}
+          <div id="distress-indicators-col" className="bg-red-50/10 border border-red-100/60 rounded-2xl p-5 space-y-4">
+            <h3 className="text-xs font-black text-red-800 uppercase tracking-widest flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+              {currentTips.distressTitle}
+            </h3>
+
+            <div className="space-y-3">
+              {currentTips.distressList.map((item, idx) => (
+                <div key={idx} className="bg-white border border-red-50 rounded-xl p-3.5 shadow-xs hover:border-red-200 transition-colors">
+                  <div className="flex items-start gap-2.5">
+                    <div className="mt-0.5 p-1 bg-red-50 text-red-650 rounded-lg flex-shrink-0">
+                      <AlertCircle className="w-3.5 h-3.5 text-red-500" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-800">{item.title}</h4>
+                      <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                        {item.desc}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Slide-in student floating toast alerts */}
